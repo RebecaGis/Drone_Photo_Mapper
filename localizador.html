@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Drone Photo Mapper - App</title>
+    
+    <!-- Manifest para PWA -->
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Drone%20Photo%20Mapper%22%2C%22short_name%22%3A%22DroneMapper%22%2C%22description%22%3A%22Mapeie%20fotos%20de%20drone%20com%20GPS%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23667eea%22%2C%22theme_color%22%3A%22%23764ba2%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22%23667eea%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%2270%22%20font-size%3D%2260%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%20font-family%3D%22Arial%22%3E✈%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%2C%7B%22src%22%3A%22data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20512%20512%22%3E%3Ccircle%20cx%3D%22256%22%20cy%3D%22256%22%20r%3D%22256%22%20fill%3D%22%23667eea%22%2F%3E%3Ctext%20x%3D%22256%22%20y%3D%22350%22%20font-size%3D%22300%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%20font-family%3D%22Arial%22%3E✈%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+    
+    <!-- Meta tags para iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DroneMapper">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22%23667eea%22%2F%3E%3Ctext%20x%3D%2250%22%20y%3D%2270%22%20font-size%3D%2260%22%20text-anchor%3D%22middle%22%20fill%3D%22white%22%20font-family%3D%22Arial%22%3E✈%3C%2Ftext%3E%3C%2Fsvg%3E">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #f8f9fa;
+        }
+
+        /* Banner de instalação */
+        #installBanner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem 1rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            z-index: 2000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        #installBanner.show {
+            display: flex;
+        }
+
+        .install-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .install-icon {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .install-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .install-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .install-subtitle {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        .install-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .install-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .install-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .install-close {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .install-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-title h1 {
+            font-size: 1.3rem;
+            font-weight: 300;
+        }
+
+        .header-title i {
+            font-size: 1.5rem;
+        }
+
+        #installHeaderBtn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        #installHeaderBtn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        #installHeaderBtn.hidden {
+            display: none;
+        }
+
+        #dropZone {
+            background: rgba(255,255,255,0.1);
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin: 0.75rem auto;
+            max-width: 500px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        #dropZone:hover, #dropZone.dragover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.8);
+        }
+
+        #mainContainer {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #sidebar {
+            width: 400px;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        #sidebar.collapsed {
+            width: 0;
+            min-width: 0;
+            border-right: none;
+        }
+
+        #sidebarHeader {
+            padding: 1rem;
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #sidebarHeader h3 {
+            font-size: 1rem;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #toggleSidebar {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        #toggleSidebar:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        #photoList {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .photo-item {
+            background: white;
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .photo-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .photo-item.selected {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .photo-thumb {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .photo-info {
+            flex: 1;
+            font-size: 0.85rem;
+        }
+
+        .photo-name {
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 4px;
+            word-break: break-word;
+        }
+
+        .photo-coords {
+            color: #6c757d;
+            font-size: 0.75rem;
+            font-family: monospace;
+        }
+
+        .photo-coords i {
+            margin-right: 4px;
+            width: 12px;
+        }
+
+        .photo-address {
+            font-size: 0.7rem;
+            color: #28a745;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .no-gps-badge {
+            background: #ffc107;
+            color: #856404;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #statsBar {
+            background: white;
+            border-top: 1px solid #dee2e6;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            color: #6c757d;
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        #statsBar span {
+            color: #212529;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .stats-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #e9ecef;
+            color: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover:not(:disabled) {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .leaflet-popup-content {
+            min-width: 200px;
+        }
+
+        .popup-image {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+
+        .custom-div-icon {
+            background: transparent;
+            border: none;
+        }
+
+        .marker-pin {
+            width: 40px;
+            height: 40px;
+            border-radius: 50% 50% 50% 0;
+            background: white;
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -20px 0 0 -20px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .marker-pin:hover {
+            transform: rotate(-45deg) scale(1.1);
+        }
+
+        .marker-pin img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            position: absolute;
+            transform: rotate(45deg);
+            left: 4px;
+            top: 4px;
+            object-fit: cover;
+            border: 2px solid white;
+        }
+
+        #errorMessage {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 8px 16px;
+            border-radius: 4px;
+            margin: 8px 16px;
+            font-size: 0.9rem;
+            display: none;
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        #progressBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #28a745);
+            z-index: 2000;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s;
+        }
+
+        /* Offline indicator */
+        #offlineIndicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        #offlineIndicator.show {
+            display: flex;
+        }
+
+        @media (max-width: 768px) {
+            #mainContainer {
+                flex-direction: column;
+            }
+            
+            #sidebar {
+                width: 100%;
+                height: 250px;
+                border-right: none;
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            #sidebar.collapsed {
+                height: 0;
+                width: 100%;
+            }
+
+            .stats-actions {
+                margin-left: 0;
+                width: 100%;
+                justify-content: center;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            #installHeaderBtn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .install-buttons {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="progressBar"></div>
+    
+    <!-- Banner de instalação -->
+    <div id="installBanner">
+        <div class="install-info">
+            <div class="install-icon">✈</div>
+            <div class="install-text">
+                <span class="install-title">Instalar Drone Photo Mapper</span>
+                <span class="install-subtitle">Instale como app para acesso rápido offline</span>
+            </div>
+        </div>
+        <div class="install-buttons">
+            <button class="install-btn" id="installBtn">Instalar</button>
+            <button class="install-close" id="closeInstallBanner">✕</button>
+        </div>
+    </div>
+
+    <!-- Indicador offline -->
+    <div id="offlineIndicator">
+        <i class="fas fa-wifi-slash"></i>
+        Modo offline - Algumas funções podem estar limitadas
+    </div>
+
+    <header>
+        <div class="header-title">
+            <i class="fas fa-drone"></i>
+            <h1>Drone Photo Mapper</h1>
+        </div>
+        <button id="installHeaderBtn" class="hidden">
+            <i class="fas fa-download"></i> Instalar App
+        </button>
+    </header>
+
+    <div id="dropZone">
+        <i class="fas fa-cloud-upload-alt"></i>
+        Arraste fotos ou clique para selecionar
+        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+    </div>
+
+    <div id="mainContainer">
+        <div id="sidebar">
+            <div id="sidebarHeader">
+                <h3>
+                    <i class="fas fa-images"></i>
+                    Fotos Carregadas
+                </h3>
+                <button id="toggleSidebar" title="Ocultar/Mostrar lista">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+            <div id="photoList"></div>
+        </div>
+        <div id="map"></div>
+    </div>
+
+    <div id="statsBar">
+        <div><i class="fas fa-images"></i> Total: <span id="totalPhotos">0</span></div>
+        <div><i class="fas fa-map-marker-alt"></i> Com GPS: <span id="gpsPhotos">0</span></div>
+        <div><i class="fas fa-times-circle"></i> Sem GPS: <span id="noGpsPhotos">0</span></div>
+        <div><i class="fas fa-address-card"></i> Endereços: <span id="addressesResolved">0</span>/<span id="totalWithGps">0</span></div>
+        <div class="stats-actions">
+            <button class="btn btn-primary" id="exportExcelBtn" disabled title="Gerar relatório Excel">
+                <i class="fas fa-file-excel"></i> Excel
+            </button>
+            <button class="btn btn-secondary" id="resolveAddressesBtn" disabled title="Buscar endereços">
+                <i class="fas fa-search"></i> Endereços
+            </button>
+            <button class="btn btn-info" id="offlineTestBtn" title="Testar funcionalidade offline">
+                <i class="fas fa-wifi-slash"></i> Testar Offline
+            </button>
+            <button class="btn btn-danger" id="clearBtn" disabled>
+                <i class="fas fa-trash"></i> Limpar
+            </button>
+        </div>
+    </div>
+
+    <div id="errorMessage"></div>
+
+    <!-- Service Worker Registration -->
+    <script>
+        // Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js').catch(error => {
+                    console.log('ServiceWorker registration failed:', error);
+                });
+            });
+        }
+    </script>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js"></script>
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        // Configuração do mapa
+        const map = L.map('map').setView([-15.7801, -47.9292], 4);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Array para armazenar as fotos e marcadores
+        let photos = [];
+        let markers = [];
+        let selectedPhotoId = null;
+        let resolvingAddresses = false;
+        let deferredPrompt = null;
+        let isOnline = navigator.onLine;
+
+        // Cache de endereços
+        const addressCache = new Map();
+
+        // Elementos DOM
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const photoList = document.getElementById('photoList');
+        const totalPhotosSpan = document.getElementById('totalPhotos');
+        const gpsPhotosSpan = document.getElementById('gpsPhotos');
+        const noGpsPhotosSpan = document.getElementById('noGpsPhotos');
+        const addressesResolvedSpan = document.getElementById('addressesResolved');
+        const totalWithGpsSpan = document.getElementById('totalWithGps');
+        const clearBtn = document.getElementById('clearBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const resolveAddressesBtn = document.getElementById('resolveAddressesBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebar');
+        const progressBar = document.getElementById('progressBar');
+        const installBanner = document.getElementById('installBanner');
+        const installBtn = document.getElementById('installBtn');
+        const closeInstallBanner = document.getElementById('closeInstallBanner');
+        const installHeaderBtn = document.getElementById('installHeaderBtn');
+        const offlineIndicator = document.getElementById('offlineIndicator');
+        const offlineTestBtn = document.getElementById('offlineTestBtn');
+
+        // PWA Installation
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBanner.classList.add('show');
+            installHeaderBtn.classList.remove('hidden');
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                installBanner.classList.remove('show');
+                installHeaderBtn.classList.add('hidden');
+            }
+            
+            deferredPrompt = null;
+        });
+
+        installHeaderBtn.addEventListener('click', () => {
+            installBanner.classList.add('show');
+        });
+
+        closeInstallBanner.addEventListener('click', () => {
+            installBanner.classList.remove('show');
+        });
+
+        // Detectar conexão
+        window.addEventListener('online', () => {
+            isOnline = true;
+            offlineIndicator.classList.remove('show');
+            showError('Conexão restabelecida!');
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            offlineIndicator.classList.add('show');
+            showError('Você está offline. Algumas funções podem estar limitadas.');
+        });
+
+        // Botão para testar offline
+        offlineTestBtn.addEventListener('click', () => {
+            if (isOnline) {
+                if (confirm('Simular modo offline? Isso pode afetar a busca de endereços.')) {
+                    offlineIndicator.classList.add('show');
+                    showError('Modo offline simulado ativado');
+                }
+            } else {
+                offlineIndicator.classList.remove('show');
+                showError('Modo offline desativado');
+            }
+        });
+
+        function showError(msg) {
+            errorMessage.style.display = 'block';
+            errorMessage.textContent = msg;
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function showProgress(progress) {
+            progressBar.style.transform = `scaleX(${progress})`;
+        }
+
+        function updateStats() {
+            const total = photos.length;
+            const withGps = photos.filter(p => p.lat && p.lng).length;
+            const withoutGps = total - withGps;
+            const addressesResolved = photos.filter(p => p.address).length;
+
+            totalPhotosSpan.textContent = total;
+            gpsPhotosSpan.textContent = withGps;
+            noGpsPhotosSpan.textContent = withoutGps;
+            addressesResolvedSpan.textContent = addressesResolved;
+            totalWithGpsSpan.textContent = withGps;
+
+            clearBtn.disabled = total === 0;
+            exportExcelBtn.disabled = withGps === 0;
+            resolveAddressesBtn.disabled = withGps === 0 || resolvingAddresses || !isOnline;
+        }
+
+        // Buscar endereço
+        async function fetchAddress(lat, lng) {
+            if (!isOnline) {
+                return 'Indisponível (offline)';
+            }
+
+            const cacheKey = `${lat},${lng}`;
+            
+            if (addressCache.has(cacheKey)) {
+                return addressCache.get(cacheKey);
+            }
+
+            try {
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                    {
+                        headers: {
+                            'User-Agent': 'DronePhotoMapper/1.0'
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    throw new Error('Erro na consulta');
+                }
+
+                const data = await response.json();
+                
+                let address = '';
+                if (data.address) {
+                    const parts = [];
+                    if (data.address.road) parts.push(data.address.road);
+                    if (data.address.suburb) parts.push(data.address.suburb);
+                    if (data.address.city || data.address.town || data.address.village) {
+                        parts.push(data.address.city || data.address.town || data.address.village);
+                    }
+                    if (data.address.state) parts.push(data.address.state);
+                    if (data.address.country) parts.push(data.address.country);
+                    
+                    address = parts.join(', ');
+                } else {
+                    address = data.display_name || 'Endereço não encontrado';
+                }
+
+                addressCache.set(cacheKey, address);
+                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                return address;
+            } catch (error) {
+                console.error('Erro ao buscar endereço:', error);
+                return 'Erro ao obter endereço';
+            }
+        }
+
+        // Resolver todos os endereços
+        async function resolveAllAddresses() {
+            if (!isOnline) {
+                showError('Você está offline. Conecte-se à internet para buscar endereços.');
+                return;
+            }
+
+            const photosWithGps = photos.filter(p => p.lat && p.lng && !p.address);
+            
+            if (photosWithGps.length === 0) {
+                showError('Todas as fotos já têm endereço!');
+                return;
+            }
+
+            resolvingAddresses = true;
+            resolveAddressesBtn.disabled = true;
+            resolveAddressesBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buscando...';
+
+            showProgress(0);
+
+            let resolved = 0;
+            for (const photo of photosWithGps) {
+                try {
+                    photo.address = await fetchAddress(photo.lat, photo.lng);
+                    resolved++;
+                    showProgress(resolved / photosWithGps.length);
+                    updateStats();
+                    renderPhotoList();
+
+                    const markerObj = markers.find(m => m.photoId === photo.id);
+                    if (markerObj) {
+                        const popupContent = `
+                            <div style="text-align: center;">
+                                <img src="${photo.dataUrl}" class="popup-image" alt="${photo.name}">
+                                <strong>${photo.name}</strong><br>
+                                <small>${photo.lat.toFixed(6)}, ${photo.lng.toFixed(6)}</small><br>
+                                <small style="color: #28a745;">${photo.address}</small>
+                            </div>
+                        `;
+                        markerObj.marker.setPopupContent(popupContent);
+                    }
+                } catch (error) {
+                    console.error('Erro ao resolver endereço:', error);
+                }
+            }
+
+            resolvingAddresses = false;
+            resolveAddressesBtn.disabled = false;
+            resolveAddressesBtn.innerHTML = '<i class="fas fa-search"></i> Endereços';
+            showProgress(0);
+            
+            showError(`Endereços resolvidos: ${resolved} de ${photosWithGps.length}`);
+        }
+
+        // Criar marcador
+        function createCustomMarker(photo) {
+            const icon = L.divIcon({
+                className: 'custom-div-icon',
+                html: `
+                    <div class="marker-pin">
+                        <img src="${photo.dataUrl}" alt="${photo.name}">
+                    </div>
+                `,
+                iconSize: [40, 40],
+                iconAnchor: [20, 40],
+                popupAnchor: [0, -40]
+            });
+
+            const marker = L.marker([photo.lat, photo.lng], { icon }).addTo(map);
+
+            const popupContent = `
+                <div style="text-align: center;">
+                    <img src="${photo.dataUrl}" class="popup-image" alt="${photo.name}">
+                    <strong>${photo.name}</strong><br>
+                    <small>${photo.lat.toFixed(6)}, ${photo.lng.toFixed(6)}</small><br>
+                    ${photo.address ? `<small style="color: #28a745;">${photo.address}</small>` : ''}
+                </div>
+            `;
+
+            marker.bindPopup(popupContent);
+
+            marker.on('click', () => {
+                selectPhoto(photo.id);
+            });
+
+            return marker;
+        }
+
+        function selectPhoto(photoId) {
+            selectedPhotoId = photoId;
+            renderPhotoList();
+            
+            const photo = photos.find(p => p.id === photoId);
+            if (photo && photo.lat && photo.lng) {
+                map.setView([photo.lat, photo.lng], 16);
+                
+                const marker = markers.find(m => m.photoId === photoId);
+                if (marker && marker.marker) {
+                    marker.marker.openPopup();
+                }
+            }
+        }
+
+        // Processar EXIF
+        function processPhoto(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const dataUrl = e.target.result;
+                    
+                    const photo = {
+                        id: Date.now() + Math.random(),
+                        name: file.name,
+                        file: file,
+                        dataUrl: dataUrl,
+                        lat: null,
+                        lng: null,
+                        timestamp: null,
+                        address: null
+                    };
+
+                    EXIF.getData(file, function() {
+                        const exifData = EXIF.getAllTags(this);
+                        
+                        if (exifData) {
+                            const latRef = exifData.GPSLatitudeRef || 'S';
+                            const lonRef = exifData.GPSLongitudeRef || 'W';
+                            
+                            if (exifData.GPSLatitude && exifData.GPSLongitude) {
+                                const latDeg = exifData.GPSLatitude[0];
+                                const latMin = exifData.GPSLatitude[1];
+                                const latSec = exifData.GPSLatitude[2] || 0;
+                                
+                                const lonDeg = exifData.GPSLongitude[0];
+                                const lonMin = exifData.GPSLongitude[1];
+                                const lonSec = exifData.GPSLongitude[2] || 0;
+                                
+                                let lat = latDeg + (latMin / 60) + (latSec / 3600);
+                                let lng = lonDeg + (lonMin / 60) + (lonSec / 3600);
+                                
+                                if (latRef === 'S') lat = -lat;
+                                if (lonRef === 'W') lng = -lng;
+                                
+                                photo.lat = lat;
+                                photo.lng = lng;
+                            }
+                            
+                            photo.timestamp = exifData.DateTime || exifData.DateTimeOriginal || null;
+                        }
+                        
+                        resolve(photo);
+                    });
+                };
+                
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Adicionar foto
+        async function addPhoto(file) {
+            try {
+                const photo = await processPhoto(file);
+                photos.push(photo);
+                
+                if (photo.lat && photo.lng) {
+                    const marker = createCustomMarker(photo);
+                    markers.push({
+                        photoId: photo.id,
+                        marker: marker
+                    });
+                    
+                    if (markers.length === 1) {
+                        map.setView([photo.lat, photo.lng], 13);
+                    } else {
+                        const group = L.featureGroup(markers.map(m => m.marker));
+                        map.fitBounds(group.getBounds().pad(0.1));
+                    }
+                }
+                
+                renderPhotoList();
+                updateStats();
+                
+            } catch (error) {
+                console.error('Erro ao processar foto:', error);
+                showError(`Erro ao processar ${file.name}: ${error.message}`);
+            }
+        }
+
+        // Renderizar lista
+        function renderPhotoList() {
+            if (photos.length === 0) {
+                photoList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #6c757d;">
+                        <i class="fas fa-cloud-upload-alt fa-3x" style="margin-bottom: 1rem;"></i>
+                        <p>Arraste fotos para começar</p>
+                    </div>
+                `;
+                return;
+            }
+
+            photoList.innerHTML = photos.map(photo => `
+                <div class="photo-item ${selectedPhotoId === photo.id ? 'selected' : ''}" 
+                     onclick="selectPhoto('${photo.id}')">
+                    <img src="${photo.dataUrl}" class="photo-thumb" alt="${photo.name}">
+                    <div class="photo-info">
+                        <div class="photo-name">${photo.name}</div>
+                        ${photo.lat && photo.lng ? `
+                            <div class="photo-coords">
+                                <i class="fas fa-latitude"></i> ${photo.lat.toFixed(6)}<br>
+                                <i class="fas fa-longitude"></i> ${photo.lng.toFixed(6)}
+                            </div>
+                            ${photo.address ? `
+                                <div class="photo-address">
+                                    <i class="fas fa-map-pin"></i> ${photo.address.substring(0, 50)}${photo.address.length > 50 ? '...' : ''}
+                                </div>
+                            ` : ''}
+                        ` : `
+                            <span class="no-gps-badge">
+                                <i class="fas fa-exclamation-triangle"></i> Sem coordenadas GPS
+                            </span>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Gerar Excel
+        function generateExcel() {
+            const photosWithGps = photos.filter(p => p.lat && p.lng);
+            
+            if (photosWithGps.length === 0) {
+                showError('Não há fotos com GPS para gerar relatório');
+                return;
+            }
+
+            const data = photosWithGps.map((photo, index) => ({
+                'Nº': index + 1,
+                'Nome do Arquivo': photo.name,
+                'Latitude': photo.lat,
+                'Longitude': photo.lng,
+                'Endereço': photo.address || (isOnline ? 'Não consultado' : 'Offline'),
+                'Data/Hora (EXIF)': photo.timestamp || 'Não disponível',
+                'Link Google Maps': `https://www.google.com/maps?q=${photo.lat},${photo.lng}`,
+                'Link OpenStreetMap': `https://www.openstreetmap.org/?mlat=${photo.lat}&mlon=${photo.lng}`
+            }));
+
+            const summary = {
+                'Nº': 'RESUMO',
+                'Nome do Arquivo': `Total de fotos com GPS: ${photosWithGps.length}`,
+                'Latitude': `Endereços resolvidos: ${photosWithGps.filter(p => p.address).length}`,
+                'Longitude': '',
+                'Endereço': '',
+                'Data/Hora (EXIF)': '',
+                'Link Google Maps': '',
+                'Link OpenStreetMap': ''
+            };
+
+            data.unshift(summary);
+            data.unshift({});
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(data, { header: ['Nº', 'Nome do Arquivo', 'Latitude', 'Longitude', 'Endereço', 'Data/Hora (EXIF)', 'Link Google Maps', 'Link OpenStreetMap'] });
+
+            const colWidths = [
+                { wch: 5 },
+                { wch: 40 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 60 },
+                { wch: 20 },
+                { wch: 30 },
+                { wch: 30 }
+            ];
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Fotos Drone');
+
+            const date = new Date();
+            const fileName = `relatorio_drone_${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}.xlsx`;
+
+            XLSX.writeFile(wb, fileName);
+            
+            showError('Relatório Excel gerado com sucesso!');
+        }
+
+        // Limpar tudo
+        function clearAll() {
+            photos = [];
+            markers.forEach(m => map.removeLayer(m.marker));
+            markers = [];
+            selectedPhotoId = null;
+            addressCache.clear();
+            renderPhotoList();
+            updateStats();
+            map.setView([-15.7801, -47.9292], 4);
+        }
+
+        // Event listeners
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    addPhoto(file);
+                } else {
+                    showError(`${file.name} não é uma imagem válida`);
+                }
+            });
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            files.forEach(file => addPhoto(file));
+            fileInput.value = '';
+        });
+
+        clearBtn.addEventListener('click', clearAll);
+        exportExcelBtn.addEventListener('click', generateExcel);
+        resolveAddressesBtn.addEventListener('click', resolveAllAddresses);
+
+        toggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            const icon = toggleSidebar.querySelector('i');
+            icon.className = sidebar.classList.contains('collapsed') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+            setTimeout(() => map.invalidateSize(), 300);
+        });
+
+        window.selectPhoto = selectPhoto;
+
+        // Inicializar
+        updateStats();
+        renderPhotoList();
+
+        window.addEventListener('resize', () => {
+            map.invalidateSize();
+        });
+    </script>
+
+    <!-- Service Worker Content -->
+    <script id="service-worker-content" type="javascript/worker">
+        const CACHE_NAME = 'drone-mapper-v1';
+        const urlsToCache = [
+            './',
+            'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+            'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
+            'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
+        ];
+
+        self.addEventListener('install', event => {
+            event.waitUntil(
+                caches.open(CACHE_NAME)
+                    .then(cache => cache.addAll(urlsToCache))
+            );
+        });
+
+        self.addEventListener('fetch', event => {
+            event.respondWith(
+                caches.match(event.request)
+                    .then(response => response || fetch(event.request))
+            );
+        });
+
+        self.addEventListener('activate', event => {
+            event.waitUntil(
+                caches.keys().then(cacheNames => {
+                    return Promise.all(
+                        cacheNames.map(cacheName => {
+                            if (cacheName !== CACHE_NAME) {
+                                return caches.delete(cacheName);
+                            }
+                        })
+                    );
+                })
+            );
+        });
+    </script>
+
+    <script>
+        // Registrar Service Worker com código inline
+        (function() {
+            if ('serviceWorker' in navigator) {
+                const swContent = document.getElementById('service-worker-content').textContent;
+                const blob = new Blob([swContent], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                
+                navigator.serviceWorker.register(swUrl).then(registration => {
+                    console.log('ServiceWorker registrado com sucesso');
+                }).catch(error => {
+                    console.log('Falha no registro do ServiceWorker:', error);
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
