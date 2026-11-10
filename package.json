@@ -1,0 +1,7 @@
+{
+  "name": "drone-photo-mapper",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Mapeamento local de fotos GPS, consulta de endereços e relatórios Excel",
+  "scripts": { "test": "node --test tests/*.test.cjs" }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Drone Photo Mapper",
+  "short_name": "DroneMapper",
+  "description": "Mapeie fotos GPS e gere relatórios de campo.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f9fa",
+  "theme_color": "#667eea",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
